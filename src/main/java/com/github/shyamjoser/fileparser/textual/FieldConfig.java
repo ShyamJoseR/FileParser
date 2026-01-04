@@ -21,7 +21,7 @@ public class FieldConfig {
      * Enum for field data types.
      */
     public enum FieldType {
-        STRING, INTEGER, DECIMAL, BOOLEAN, DATE
+        STRING, INTEGER, DECIMAL
     }
 
     /**
@@ -160,13 +160,7 @@ public class FieldConfig {
                 } catch (NumberFormatException e) {
                     return false;
                 }
-            case BOOLEAN:
-                String bool = value.trim().toLowerCase();
-                return bool.equals("true") || bool.equals("false") ||
-                       bool.equals("yes") || bool.equals("no") ||
-                       bool.equals("1") || bool.equals("0");
             case STRING:
-            case DATE:
                 return true;
             default:
                 return true;
@@ -199,11 +193,7 @@ public class FieldConfig {
                 } catch (NumberFormatException e) {
                     return null;
                 }
-            case BOOLEAN:
-                String bool = trimmed.toLowerCase();
-                return bool.equals("true") || bool.equals("yes") || bool.equals("1");
             case STRING:
-            case DATE:
             default:
                 return trimmed;
         }
