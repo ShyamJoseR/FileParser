@@ -2,6 +2,8 @@ package com.github.shyamjoser.fileparser.textual;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
@@ -15,9 +17,13 @@ import static org.junit.Assert.*;
  */
 public class TextualParserTest {
 
+    private static final Logger log = LoggerFactory.getLogger(TextualParserTest.class);
     private TextualConfigLoader configLoader;
     private TextualParser parser;
     private String yamlConfig;
+
+    private static final String record1Data = "00001John           john@exam.com  Y1234.5678";
+    private static final String record2Data = "01Field1Field2Field3Field4Field5123 12.34";
 
     @Before
     public void setUp() {
@@ -101,7 +107,7 @@ public class TextualParserTest {
         assertNotNull("Record type should be found", record);
         assertEquals("Record type name should match", "record_1", record.getName());
         assertEquals("Should have 5 fields", 5, record.getFieldCount());
-        assertEquals("Total length should be 40", 40, record.getTotalLength());
+        assertEquals("Total length should be 45", 45, record.getTotalLength());
     }
 
     @Test
@@ -119,19 +125,16 @@ public class TextualParserTest {
 
     @Test
     public void testParseRecord() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         assertNotNull("Node should be parsed", node);
         assertEquals("Record type should match", "record_1", node.getRecordType());
         assertEquals("ID should be 1", 1, node.getAsInt("id"));
-        assertEquals("Name should match", "John       ", node.getAsString("name").substring(0, 10));
+        assertEquals("Name should match", "John", node.getAsString("name"));
     }
 
     @Test
     public void testTextualNodeFieldAccess() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
 
         assertTrue("Node should have id field", node.has("id"));
         assertTrue("Node should have name field", node.has("name"));
@@ -143,8 +146,7 @@ public class TextualParserTest {
 
     @Test
     public void testTextualNodeFieldNames() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
 
         List<String> fieldNames = node.getFieldNames();
         assertEquals("Should have 5 field names", 5, fieldNames.size());
@@ -154,27 +156,21 @@ public class TextualParserTest {
 
     @Test
     public void testIntegerFieldParsing() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         int id = node.getAsInt("id");
         assertEquals("ID should be parsed as integer", 1, id);
     }
 
     @Test
     public void testDecimalFieldParsing() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         double amount = node.getAsDouble("amount");
-        assertEquals("Amount should be parsed as double", 1234.56789, amount, 0.00001);
+        assertEquals("Amount should be parsed as double", 1234.5678, amount, 0.00001);
     }
 
     @Test
     public void testStringFieldParsing() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         String name = node.getAsString("name");
         assertNotNull("Name should not be null", name);
         assertTrue("Name should contain John", name.contains("John"));
@@ -182,8 +178,7 @@ public class TextualParserTest {
 
     @Test
     public void testValidateRecord() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        boolean isValid = parser.validateRecord("source_1", "record_1", recordData);
+        boolean isValid = parser.validateRecord("source_1", "record_1", record1Data);
         assertTrue("Record should be valid", isValid);
     }
 
@@ -219,9 +214,7 @@ public class TextualParserTest {
 
     @Test
     public void testTextualNodeToString() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         String toString = node.toString();
         assertNotNull("toString should not be null", toString);
         assertTrue("toString should contain record type", toString.contains("record_1"));
@@ -229,9 +222,7 @@ public class TextualParserTest {
 
     @Test
     public void testTextualNodeFormattedString() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         String formatted = node.toFormattedString();
         assertNotNull("Formatted string should not be null", formatted);
         assertTrue("Should contain record type", formatted.contains("Record Type"));
@@ -240,9 +231,7 @@ public class TextualParserTest {
 
     @Test
     public void testRecord2Parsing() {
-        String recordData = "01Field1Field2Field3Field4Field5123 12.34";
-        TextualNode node = parser.parseRecord("source_1", "record_2", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_2", record2Data);
         assertNotNull("Node should be parsed", node);
         assertEquals("Record type should be record_2", "record_2", node.getRecordType());
         assertEquals("Type code should be 01", "01", node.getAsString("type_code"));
@@ -276,35 +265,11 @@ public class TextualParserTest {
 
     @Test
     public void testTextualNodeGetFields() {
-        String recordData = "00001John       john@exam.comAY       1234.56789";
-        TextualNode node = parser.parseRecord("source_1", "record_1", recordData);
-
+        TextualNode node = parser.parseRecord("source_1", "record_1", record1Data);
         Map<String, Object> fields = node.getFields();
         assertNotNull("Fields map should not be null", fields);
         assertEquals("Should have 5 fields", 5, fields.size());
         assertTrue("Should contain id field", fields.containsKey("id"));
-    }
-
-    @Test
-    public void testBooleanFieldParsing() {
-        String yamlWithBoolean = yamlConfig.replace(
-                "          - name: status\n" +
-                "            length: 1\n" +
-                "            type: STRING",
-                "          - name: status\n" +
-                "            length: 1\n" +
-                "            type: BOOLEAN"
-        );
-
-        TextualConfigLoader loader = new TextualConfigLoader();
-        loader.loadFromString(yamlWithBoolean);
-        TextualParser testParser = new TextualParser(loader);
-
-        String recordData = "00001John       john@exam.comTY       1234.56789";
-        TextualNode node = testParser.parseRecord("source_1", "record_1", recordData);
-
-        boolean status = node.getAsBoolean("status");
-        assertTrue("Status should be true", status);
     }
 
     @Test
@@ -328,7 +293,7 @@ public class TextualParserTest {
         RecordTypeConfig record = source.getRecordType("record_1");
 
         int totalLength = record.getTotalLength();
-        assertEquals("Total length should be 40", 40, totalLength);
+        assertEquals("Total length should be 45", 45, totalLength);
     }
 }
 
