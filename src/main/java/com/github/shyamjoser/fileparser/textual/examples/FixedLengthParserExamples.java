@@ -16,7 +16,9 @@ public class FixedLengthParserExamples {
 
     public static void main(String[] args) throws Exception {
         System.out.println("========== FixedLengthParser Examples ==========\n");
-        String data = "Shyam JoseR             Shyam JOse Richard is a software engineer who is playing around with code now.         ";
+        // String data = "Shyam JoseR             Shyam JOse Richard is a software engineer who is playing around with code now.         ";
+        String data = "Shyam JoseR            ";
+        // String data = "Shyam JoseR              shyamjose.r@gmail.com     ";
         System.out.println("Input Data: '" + data + "'\n");
         StringTypeExample example = FixedLengthParser.parse(data, StringTypeExample.class);
         System.out.println("Parsed StringTypeExample:");
@@ -27,5 +29,4 @@ public class FixedLengthParserExamples {
         String serialized = FixedLengthParser.serialize(example);
         System.out.println("\nSerialized StringTypeExample: '" + serialized + "'");
     }
-
 }

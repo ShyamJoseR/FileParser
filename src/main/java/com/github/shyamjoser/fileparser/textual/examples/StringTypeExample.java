@@ -4,7 +4,7 @@ import com.github.shyamjoser.fileparser.textual.annotation.FixedField;
 import com.github.shyamjoser.fileparser.textual.annotation.FixedLengthRecord;
 import lombok.Data;
 
-@FixedLengthRecord(totalLength = 50, trim = false)
+@FixedLengthRecord(totalLength = 50, trim = true)
 public class StringTypeExample {
 
     @FixedField(position = 1, length = 10)
