@@ -28,5 +28,8 @@ public class FixedLengthParserExamples {
 
         String serialized = FixedLengthParser.serialize(example);
         System.out.println("\nSerialized StringTypeExample: '" + serialized + "'");
+
+        var jsonNode = FixedLengthParser.serializeToJson(example);
+        System.out.println("\nSerialized JSON (Compact): " + jsonNode);
     }
 }

@@ -1,5 +1,7 @@
 package com.github.shyamjoser.fileparser.textual.parser;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.shyamjoser.fileparser.textual.annotation.FixedField;
 import com.github.shyamjoser.fileparser.textual.annotation.FixedLengthRecord;
 import org.slf4j.Logger;
@@ -14,12 +16,13 @@ import java.util.stream.Stream;
  * Enterprise-grade parser for fixed-length record formats.
  * 
  * This parser handles serialization and deserialization of fixed-length formatted data
- * into Java objects using annotations and reflection.
- * 
+ * into Java objects using annotations and reflection, with support for JSON serialization.
+ *
  * Key features:
  * - Stream-based processing for better performance and readability
  * - Functional programming patterns for field extraction and formatting
  * - Reflection caching to optimize repeated parsing operations
+ * - JSON serialization support with enterprise-grade Jackson library
  * - Comprehensive error handling and logging
  * - Type-safe generic operations
  * 
@@ -29,6 +32,7 @@ public class FixedLengthParser {
     
     private static final Logger logger = LoggerFactory.getLogger(FixedLengthParser.class);
     private static final Map<Class<?>, Field[]> fieldCache = new ConcurrentHashMap<>();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Parses a fixed-length string into a strongly-typed object instance.
@@ -80,6 +84,54 @@ public class FixedLengthParser {
         String output = applyTrimming(recordAnnotation, result);
         logger.debug("Successfully serialized to {} characters", output.length());
         return output;
+    }
+
+    /**
+     * Serializes a Java object instance into a compact JSON representation.
+     *
+     * This method converts an object containing @FixedField annotated fields into a compact,
+     * space-efficient JSON format suitable for high-performance API responses and data interchange.
+     * Returns an ObjectNode for zero-copy performance optimization and flexible downstream processing.
+     *
+     * @param <T> The source object type
+     * @param instance The object to serialize to JSON
+     * @return An ObjectNode containing only field values in compact format
+     * @throws IllegalArgumentException if instance is null or class validation fails
+     * @throws IllegalAccessException if field access is denied during reflection
+     * @throws IllegalStateException if JSON serialization fails
+     *
+     * @example
+     * FixedLengthParserExamples.Customer customer = new Customer();
+     * customer.setId("123");
+     * customer.setName("John Doe");
+     * ObjectNode json = FixedLengthParser.serializeToJson(customer);
+     * // Output: {"id": "123", "name": "John Doe"}
+     * // Or as string: json.toString() -> {"id":"123","name":"John Doe"}
+     */
+    public static <T> ObjectNode serializeToJson(T instance) throws Exception {
+        Objects.requireNonNull(instance, "Instance cannot be null");
+
+        Class<?> clazz = instance.getClass();
+        validateSerializeInput(clazz);
+        logger.debug("Serializing instance to JSON: {}", clazz.getName());
+
+        try {
+            ObjectNode rootNode = objectMapper.createObjectNode();
+
+            // Extract field values directly into root node for compact format
+            getAnnotatedFields(clazz)
+                .forEach(field -> extractFieldToJson(instance, field, rootNode));
+
+            logger.debug("Successfully serialized to ObjectNode with {} fields", rootNode.size());
+            logger.trace("ObjectNode: {}", rootNode);
+
+            return rootNode;
+
+        } catch (Exception e) {
+            logger.error("Failed to serialize instance to JSON: {}", clazz.getName(), e);
+            throw new IllegalStateException(
+                "JSON serialization failed for class: " + clazz.getName(), e);
+        }
     }
 
     // ==================== Private Helper Methods ====================
@@ -258,5 +310,31 @@ public class FixedLengthParser {
     private static String applyTrimming(FixedLengthRecord annotation, StringBuilder buffer) {
         String result = buffer.toString();
         return annotation.trim() ? result.trim() : result;
+    }
+
+    /**
+     * Extracts a single annotated field value and inserts it into the JSON object node.
+     * Handles null values gracefully and logs extraction details for debugging.
+     */
+    private static <T> void extractFieldToJson(T instance, Field field, ObjectNode fieldsNode) {
+        try {
+            FixedField annotation = field.getAnnotation(FixedField.class);
+            field.setAccessible(true);
+
+            Object fieldValue = field.get(instance);
+            String fieldName = field.getName();
+
+            if (fieldValue == null) {
+                fieldsNode.putNull(fieldName);
+                logger.trace("Extracted field {} as null", fieldName);
+            } else {
+                fieldsNode.put(fieldName, fieldValue.toString());
+                logger.trace("Extracted field {}: value={}", fieldName, fieldValue);
+            }
+
+        } catch (IllegalAccessException e) {
+            logger.error("Failed to extract field for JSON serialization: {}", field.getName(), e);
+            throw new RuntimeException("Field access error during JSON extraction: " + field.getName(), e);
+        }
     }
 }
